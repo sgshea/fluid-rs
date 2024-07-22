@@ -115,7 +115,7 @@ impl FluidScene {
 
         self.frame_nr += 1;
 
-        self.draw_buffer(render_buffer);
+        self.draw(render_buffer);
     }
 
     fn setup_tank(&mut self) {
@@ -167,8 +167,6 @@ impl FluidScene {
             fluid.m[j] = 0.0; // solid
         }
 
-        self.set_obstacle(Vec2::new(1.0, 0.5), true);
-
         self.gravity = 0.0;
 
         self.show_smoke = true;
@@ -184,12 +182,9 @@ impl FluidScene {
     fn setup_paint(&mut self) {
         self.scene_type = SceneType::Paint;
 
-        let fluid = &mut self.fluid;
-
-
         self.gravity = 0.0;
         self.over_relaxation = 1.0;
-        self.obstacle_radius = 0.1;
+        self.obstacle_radius = 0.05;
 
         self.frame_nr = 0;
 
@@ -230,7 +225,7 @@ impl FluidScene {
         }
     }
 
-    pub fn draw_buffer(&mut self, render_buffer: &mut [u8]) {
+    pub fn draw(&mut self, render_buffer: &mut [u8]) {
         let fluid = &self.fluid;
 
         let h = fluid.h;
@@ -273,7 +268,7 @@ impl FluidScene {
                         let sci_color = get_sci_color(s, 0.0, 1.0);
                         set_color(&mut color, &sci_color);
                     } else {
-                        splat_color(&mut color, 255.0 * s);
+                        color_into_all(&mut color, 255.0 * s);
                     }
                 } else if fluid.s[i * n + j] == 0.0 {
                     color[0..=2].fill(0);
@@ -284,7 +279,6 @@ impl FluidScene {
                     let mut p = 4 * (yi * self.width as usize + x);
                     for _ in 0..cx {
                         p += 4;
-                        // y-coord extrema are cut off
                         if p <= render_buffer.len() {
                             render_buffer[p - 4..p].copy_from_slice(&color);
                         }
@@ -304,19 +298,19 @@ impl FluidScene {
 }
 
 pub struct Fluid {
-    density: f32,
-    num_x: usize,
-    num_y: usize,
-    num_cells: usize,
+    pub density: f32,
+    pub num_x: usize,
+    pub num_y: usize,
+    pub num_cells: usize,
     pub h: f32,
-    u: Vec<f32>,
-    v: Vec<f32>,
-    new_u: Vec<f32>,
-    new_v: Vec<f32>,
-    p: Vec<f32>,
-    s: Vec<f32>,
-    m: Vec<f32>,
-    new_m: Vec<f32>,
+    pub u: Vec<f32>,
+    pub v: Vec<f32>,
+    pub new_u: Vec<f32>,
+    pub new_v: Vec<f32>,
+    pub p: Vec<f32>,
+    pub s: Vec<f32>,
+    pub m: Vec<f32>,
+    pub new_m: Vec<f32>,
 }
 
 impl Fluid {
@@ -397,7 +391,7 @@ impl Fluid {
         }
     }
 
-    fn sample_field(&self, x: f32, y: f32, field: Field) -> f32 {
+    pub fn sample_field(&self, x: f32, y: f32, field: Field) -> f32 {
         let n = self.num_y;
         let h = self.h;
         let h1 = 1.0 / h;
@@ -467,8 +461,8 @@ impl Fluid {
         let h = self.h;
         let h2 = 0.5 * h;
 
-        for i in 1..self.num_x {
-            for j in 1..self.num_y {
+        for i in 0..self.num_x {
+            for j in 0..self.num_y {
                 // u component
                 if self.s[i * n + j] != 0.0 &&
                     self.s[(i - 1) * n + j] != 0.0 &&
@@ -527,7 +521,7 @@ impl Fluid {
     }
 }
 
-fn splat_color(color: &mut [u8; 4], val: f32) {
+fn color_into_all(color: &mut [u8; 4], val: f32) {
     let val = f32::floor(val) as u8;
     color[0..=2].fill(val);
 }

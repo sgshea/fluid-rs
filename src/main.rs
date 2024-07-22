@@ -59,6 +59,11 @@ fn setup_scene(
 
     let mut fluid_scene = FluidScene::default();
     fluid_scene.image_handle = image_handle.clone();
+    let pos = Vec2::new(
+        (0. + (fluid_scene.width + 3.) / 2.) / fluid_scene.scale,
+        (0. + (fluid_scene.height - 1.) / 2.) / fluid_scene.scale,
+    );
+    fluid_scene.set_obstacle(pos, true);
 
     commands.spawn(fluid_scene);
 
@@ -91,17 +96,34 @@ fn setup_scene(
             {
                 obstacle_info.world_position = world_position;
 
-                let pos = Vec2::new(
-                    (world_position.x + (scene.width + 3.) / 2.) / scene.scale,
-                    (world_position.y + (scene.height - 1.) / 2.) / scene.scale,
-                );
+                let pos = world_to_pos(world_position, &scene);
 
-                scene.set_obstacle(pos, true);
+                scene.set_obstacle(pos, false);
             }
         }),
     ));
 }
 
+fn world_to_pos(world: Vec2, scene: &FluidScene) -> Vec2 {
+    Vec2::new(
+        (world.x + (scene.width + 3.) / 2.) / scene.scale,
+        (world.y + (scene.height - 1.) / 2.) / scene.scale,
+    )
+}
+
+fn pos_to_world(pos: Vec2, scene: &FluidScene) -> Vec2 {
+    Vec2::new(
+        pos.x - ((scene.width + 3.) / 2.),
+        ((scene.height) / 2.) - pos.y
+    )
+}
+
+fn pos_to_world_flip_y(pos: Vec2, scene: &FluidScene) -> Vec2 {
+    Vec2::new(
+        pos.x - ((scene.width + 3.) / 2.),
+        pos.y - ((scene.height) / 2.)
+    )
+}
 
 fn update_fluid_simulation(
     mut commands: Commands,
@@ -122,6 +144,12 @@ fn update_fluid_simulation(
             // Create a new scene
             commands.entity(entity).despawn();
             let mut new_scene = FluidScene::new(ui_state.selected_scene);
+
+            let pos = Vec2::new(
+                (0. + (scene.width + 3.) / 2.) / scene.scale,
+                (0. + (scene.height - 1.) / 2.) / scene.scale,
+            );
+            new_scene.set_obstacle(pos, true);
             new_scene.image_handle = scene.image_handle.clone();
             commands.spawn(new_scene);
 
@@ -147,6 +175,71 @@ fn draw_scene_gizmos(
     };
 
     gizmos.circle_2d(obstacle_info.world_position, scene.scale * radius, color);
+
+    let fluid = &scene.fluid;
+    if scene.show_velocities {
+        let n = fluid.num_y;
+        let h = fluid.h;
+
+        for i in 0..fluid.num_x {
+            for j in 0..fluid.num_y {
+                let u = fluid.u[i * n + j];
+                let v = fluid.v[i * n + j];
+
+                // X arrow
+                let y = scene.c_y((j as f32 + 0.5) * h, scene.height, scene.scale);
+                let x0 = scene.c_x(i as f32 * h, scene.scale);
+                let x1 = scene.c_x(i as f32 * h + u * 0.01, scene.scale);
+
+                gizmos.arrow_2d(
+                    pos_to_world(Vec2::new(x0, y), scene),
+                    pos_to_world(Vec2::new(x1, y), scene),
+                    BLACK
+                );
+
+                // Y arrow
+                let x = scene.c_x((i as f32 + 0.5) * h, scene.scale);
+                let y0 = scene.c_y(j as f32 * h, scene.height, scene.scale);
+                let y1 = scene.c_y(j as f32 * h + v * 0.01, scene.height, scene.scale);
+
+                gizmos.arrow_2d(
+                    pos_to_world(Vec2::new(x, y0), scene),
+                    pos_to_world(Vec2::new(x, y1), scene),
+                    BLACK
+                );
+            }
+        }
+    }
+    if scene.show_streamlines {
+        let segment_length = fluid.h * 0.005;
+        let segments = 3;
+        for i in (1..(fluid.num_x - 1)).step_by(5) {
+            for j in (1..(fluid.num_y - 1)).step_by(5) {
+                let mut x = (i as f32 + 0.5) * fluid.h;
+                let mut y = (j as f32 + 0.5) * fluid.h;
+
+                for _ in 0..segments {
+                    let u = fluid.sample_field(x, y, eulerian_fluid::Field::U);
+                    let v = fluid.sample_field(x, y, eulerian_fluid::Field::V);
+                    let l = f32::sqrt(u * u + v * v);
+                    let mut x1 = x + (u / l * segment_length);
+                    let mut y1 = y + (v / l * segment_length);
+
+                    x1 += u * 0.01;
+                    y1 += v * 0.01;
+                    if x1 > fluid.num_x as f32 * fluid.h { break; }
+
+                    gizmos.arrow_2d(
+                        pos_to_world_flip_y((Vec2::new(x, y)) * scene.scale, scene),
+                        pos_to_world_flip_y((Vec2::new(x1, y1)) * scene.scale, scene),
+                        BLACK
+                    );
+                    x = x1;
+                    y = y1;
+                }
+            }
+        }
+    }
 }
 
 // Scale the image to fit the window (integer scaling)
