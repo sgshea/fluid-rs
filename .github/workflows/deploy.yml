@@ -1,0 +1,53 @@
+name: Build and Deploy to GitHub Pages
+
+env:
+  BUILD_PATH: "."
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+    
+    - name: Install Just
+      run: cargo install just
+
+    - name: Install WASM dependencies
+      run: just install-deps
+    
+    - name: Build WASM
+      run: just build-wasm
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{ env.BUILD_PATH }}/wasm
+  
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+    

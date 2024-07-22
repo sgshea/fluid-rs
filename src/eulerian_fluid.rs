@@ -188,6 +188,9 @@ impl FluidScene {
     }
 
     pub fn set_obstacle(&mut self, pos: Vec2, reset: bool) {
+        if pos.x < 0.2 || pos.x > (self.width * 0.01) - 0.1 || pos.y < 0.1 || pos.y > (self.height * 0.01) - 0.1 {
+            return;
+        }
         let fluid = &mut self.fluid;
 
         let mut v = Vec2::ZERO;

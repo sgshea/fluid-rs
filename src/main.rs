@@ -273,7 +273,7 @@ fn ui_system(
     let mut scene = query.single_mut();
     egui::Window::new("Configuration").title_bar(false).show(contexts.ctx_mut(), |ui| {
 
-        ui.label("Display Types");
+        ui.label("Simulation Types");
         let scene_type = &mut ui_state.selected_scene;
         egui::ComboBox::from_id_source("scene_type")
             .selected_text(format!("{:?}", scene_type))
@@ -284,10 +284,14 @@ fn ui_system(
                 ui.selectable_value(scene_type, SceneType::Paint, "Paint");
             });
 
+        ui.label("Simulation Settings, (Depends on simulation type)");
         ui.checkbox(&mut scene.show_streamlines, "Show streamlines");
         ui.checkbox(&mut scene.show_velocities, "Show velocities");
         ui.checkbox(&mut scene.show_pressure, "Show pressure");
         ui.checkbox(&mut scene.show_smoke, "Show smoke");
         ui.checkbox(&mut scene.show_smoke_gradient, "Show smoke gradient");
+
+        ui.separator();
+        ui.label("Click and drag to move the obstacle");
     });
 }
