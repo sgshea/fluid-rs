@@ -21,7 +21,7 @@ compile-wasm:
 
 # Use wasm-bindgen to generate JS bindings and move files
 generate-js:
-    wasm-bindgen --no-typescript --target web --out-dir ./wasm/ --out-name "fluid" ./target/wasm32-unknown-unknown/wasm-release/fluid.wasm
+    wasm-bindgen --no-typescript --target web --out-dir ./wasm/ --out-name "fluid" ./target/wasm32-unknown-unknown/wasm-release/fluid_sim.wasm
 
 # Move index.html and assets
 move-files:
