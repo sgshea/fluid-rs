@@ -7,7 +7,7 @@ use bevy_egui::{egui, EguiContexts, EguiPlugin};
 use eulerian_fluid::{FluidScene, SceneType};
 use bevy_mod_picking::prelude::*;
 
-const WORLD_SIZE: (f32, f32) = (160.0, 90.0);
+const WORLD_SIZE: (f32, f32) = (320.0, 180.0);
 
 mod eulerian_fluid;
 
@@ -57,7 +57,7 @@ fn setup_scene(
     );
     let image_handle = images.add(image);
 
-    let mut fluid_scene = FluidScene::default();
+    let mut fluid_scene = FluidScene::new(WORLD_SIZE.0, WORLD_SIZE.1, SceneType::WindTunnel);
     fluid_scene.image_handle = image_handle.clone();
     let pos = Vec2::new(
         (0. + (fluid_scene.width + 3.) / 2.) / fluid_scene.scale,
@@ -143,7 +143,7 @@ fn update_fluid_simulation(
         if ui_state.selected_scene != scene.scene_type {
             // Create a new scene
             commands.entity(entity).despawn();
-            let mut new_scene = FluidScene::new(ui_state.selected_scene);
+            let mut new_scene = FluidScene::new(WORLD_SIZE.0, WORLD_SIZE.1, ui_state.selected_scene);
 
             let pos = Vec2::new(
                 (0. + (scene.width + 3.) / 2.) / scene.scale,

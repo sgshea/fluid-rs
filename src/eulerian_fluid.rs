@@ -52,14 +52,12 @@ pub struct FluidScene {
 }
 
 impl FluidScene {
-    pub fn new(scene_type: SceneType) -> Self {
+    pub fn new(width: f32, height: f32, scene_type: SceneType) -> Self {
         let resolution: f32 = match scene_type {
             SceneType::Tank => 50.0,
             _ => 100.0,
         };
 
-        let width = 160.0;
-        let height = 90.0;
         let domain_height = SIM_HEIGHT;
         let domain_width = domain_height / height * width;
         let h = domain_height / resolution;
@@ -95,10 +93,6 @@ impl FluidScene {
         };
 
         scene
-    }
-
-    pub fn default() -> Self {
-        Self::new(SceneType::WindTunnel)
     }
 
     pub fn step(&mut self, dt: f32, render_buffer: &mut [u8]) {
